@@ -11,7 +11,7 @@ from postgres import *
 
 class Status(StatesGroup):
     payment_company = State()
-    payment_object = State()
+    payment_facility = State()
     payment_amount = State()
     payment_date = State()
     payment_choice = State()
@@ -20,31 +20,50 @@ class Status(StatesGroup):
     payment_user_name = State()
     payment_comment = State()
 
-    companies = State()
-    company_change_name = State()
-    company_delete = State()
-    company_add = State()
+    settings = State()
 
-    objects_in_company = State()
+    settings_companies = State()
+    settings_company_delete = State()
+    settings_company_add = State()
 
-    objects = State()
-    object_change_name = State()
-    object_delete = State()
-    object_add = State()
+    settings_facilities = State()
+    settings_facility_delete = State()
+    settings_facility_add = State()
+
+    settings_purpose_types = State()
+    settings_purpose_type_delete = State()
+    settings_purpose_type_add = State()
+
+    settings_purposes = State()
+    settings_purpose_delete = State()
+    settings_purpose_add = State()
+
+    settings_users = State()
+    settings_users_clear_balance = State()
+    settings_users_delete = State()
+    settings_users_add = State()
 
     view_all = State()
-    view_companies = State()
-    view_objects = State()
-    view_user = State()
-
     view_all_date_from = State()
     view_all_date_to = State()
+    view_company = State()
     view_company_date_from = State()
     view_company_date_to = State()
-    view_object_date_from = State()
-    view_object_date_to = State()
+    view_facility = State()
+    view_facility_date_from = State()
+    view_facility_date_to = State()
+    view_purpose_type = State()
+    view_purpose_type_date_from = State()
+    view_purpose_type_date_to = State()
+    view_purpose = State()
+    view_purpose_date_from = State()
+    view_purpose_date_to = State()
+    view_user = State()
     view_user_date_from = State()
     view_user_date_to = State()
+    view_creator = State()
+    view_creator_date_from = State()
+    view_creator_date_to = State()
 
 
 class CheckBotStatusMiddleware(BaseMiddleware):
@@ -79,7 +98,12 @@ middleware = CheckBotStatusMiddleware()
 dp.middleware.setup(middleware)
 
 
-async def send_message(chat_id, text, keyboard=None, document=None, reply=None):
+async def change_buttons():
+    commands = [BotCommand(command='start', description='Старт')]
+    await bot.set_my_commands(commands, BotCommandScopeDefault())
+
+
+async def send_message(chat_id, text, keyboard=None, document=None, reply=None, parse_mode=None):
     if document:
         try:
             document_file = open(str(document), "rb")
@@ -92,7 +116,8 @@ async def send_message(chat_id, text, keyboard=None, document=None, reply=None):
         except Exception as e:
             logging.error(f"send_message {chat_id}", exc_info=True)
 
-    mes = await bot.send_message(chat_id, text=text, reply_markup=keyboard, reply_to_message_id=reply)
+    mes = await bot.send_message(chat_id, text=text, reply_markup=keyboard, reply_to_message_id=reply,
+                                 parse_mode=parse_mode)
     logging.info(f"\n   Бот ответил пользователю {mes.chat.id}\n"
                  f"   Id сообщения: {mes.message_id}\n"
                  f"   Текст сообщения: {mes.text}\n")
@@ -138,29 +163,31 @@ async def change_message(chat_id, mes_id, text, keyboard=None, caption=False):
 
 async def send_payment_to_user(data, creator):
     await delete_last_message(creator)
-    object_id = data["object_id"]
+    facility_id = data["facility_id"]
     amount = data["amount"]
     date = data["date"]
-    purpose_id = data["purpose_id"]
-    user_name = None
+    purpose_id = None
+    if "purpose_id" in data:
+        purpose_id = data["purpose_id"]
+    user_id = None
     if "user_name" in data:
-        user_name = data["user_name"]
-        if await get_user_by_user_name(user_name) is None:
-            secret_key = await create_secret_key()
-            await insert_user(user_name, secret_key)
-        await update_user_balance_by_name(user_name, amount)
+        secret_key = await create_secret_key()
+        data["user_id"] = await insert_user(data["user_name"], secret_key)
+    if "user_id" in data:
+        user_id = data["user_id"]
+        await update_user_balance(user_id, amount)
     comment = None
     if "comment" in data:
         comment = data["comment"]
-    payment_id = await insert_payment(creator, object_id, amount, date, purpose_id, user_name, comment)
+    payment_id = await insert_payment(creator, facility_id, amount, date, purpose_id, user_id, comment)
 
     payment = await get_payment(payment_id)
-    text = "Номер платежа: " + str(payment["payment_id"])
-    text += "\nКомпания: " + str(payment["company"])
-    text += "\nОбъект: " + str(payment["object"])
+    text = "\nКомпания: " + str(payment["company"])
+    text += "\nОбъект: " + str(payment["facility"])
     text += "\nСумма: " + str(payment["amount"])
     text += "\nДата: " + str(payment["date"].strftime("%d.%m.%Y"))
-    text += f"\nНазначение: {payment['purpose_type']} {payment['purpose_name']}"
+    if payment["purpose_type"]:
+        text += f"\nНазначение: {payment['purpose_type']} {payment['purpose_name']}"
     if payment["user_name"]:
         text += "\nФИО: " + str(payment["user_name"])
     if payment["comment"]:
@@ -189,7 +216,7 @@ async def create_excel_for_all(date_from, date_to):
             payment["company"] = ""
         else:
             company = payment["company"]
-        list.append([payment["company"], payment["object"], payment["amount"]])
+        list.append([payment["company"], payment["facility"], payment["amount"]])
         company_amount += payment["amount"]
     list.append([None, "ИТОГО", company_amount])
     wb.active = await excel_column_width(list)
@@ -197,54 +224,52 @@ async def create_excel_for_all(date_from, date_to):
     return "Платежи"
 
 
-async def create_excel(date_from, date_to, company_id=None, object_id=None):
-    if company_id is not None:
-        payments = await get_company_payments_in_interval(date_from, date_to, company_id)
-        name = (await get_company(company_id))["name"]
-    else:
-        payments = await get_object_payments_in_interval(date_from, date_to, object_id)
-        name = (await get_object(object_id))["name"]
+async def create_excel(payments, name):
     wb = openpyxl.Workbook()
     list = wb.active
-    list.append(["Номер платежа", "Компания", "Объект", "Создатель", "Дата", "Назначение", "Сумма", "Комментарий"])
+    list.append(["Компания", "Объект", "Создатель", "Сумма", "Дата", "Назначение", "Тип документа", "ФИО", "Комментарий"])
 
-    company = ""
-    object = ""
-    company_amount = 0
-    object_amount = 0
+    # company = ""
+    # facility = ""
+    # company_amount = 0
+    # facility_amount = 0
+    #
+    # for payment in payments:
+    #     if facility != "" and facility != payment["facility"]:
+    #         list.append([None, None, None, None, None, "ИТОГО ПО ОБЪЕКТУ", facility_amount])
+    #         list.append([None])
+    #         facility = payment["facility"]
+    #         company_amount += facility_amount
+    #         facility_amount = 0
+    #     elif facility != "":
+    #         payment["facility"] = ""
+    #     else:
+    #         facility = payment["facility"]
+    #     if company != "" and company != payment["company"]:
+    #         list.append([None, None, None, None, None, "ИТОГО ПО КОМПАНИИ", company_amount])
+    #         list.append([None])
+    #         company = payment["company"]
+    #         company_amount = 0
+    #     elif company != "":
+    #         payment["company"] = ""
+    #     else:
+    #         company = payment["company"]
+    #     if payment["spent_for"] is None:
+    #         payment["spent_for"] = payment["user_name"]
+    #     list.append([payment["payment_id"], payment["company"], payment["facility"], payment["creator"],
+    #                  payment["date"], payment["spent_for"], payment["amount"], payment["comment"]])
+    #     facility_amount += payment["amount"]
+    # company_amount += facility_amount
+    # list.append([None, None, None, None, None, "ИТОГО ПО ОБЪЕКТУ", facility_amount])
+    # list.append([None])
+    # list.append([None, None, None, None, None, "ИТОГО ПО КОМПАНИИ", company_amount])
 
     for payment in payments:
-        if object != "" and object != payment["object"]:
-            list.append([None, None, None, None, None, "ИТОГО ПО ОБЪЕКТУ", object_amount])
-            list.append([None])
-            object = payment["object"]
-            company_amount += object_amount
-            object_amount = 0
-        elif object != "":
-            payment["object"] = ""
-        else:
-            object = payment["object"]
-        if company != "" and company != payment["company"]:
-            list.append([None, None, None, None, None, "ИТОГО ПО КОМПАНИИ", company_amount])
-            list.append([None])
-            company = payment["company"]
-            company_amount = 0
-        elif company != "":
-            payment["company"] = ""
-        else:
-            company = payment["company"]
-        if payment["spent_for"] is None:
-            payment["spent_for"] = payment["user_name"]
-        list.append([payment["payment_id"], payment["company"], payment["object"], payment["creator"],
-                     payment["date"], payment["spent_for"], payment["amount"], payment["comment"]])
-        object_amount += payment["amount"]
-    company_amount += object_amount
-    list.append([None, None, None, None, None, "ИТОГО ПО ОБЪЕКТУ", object_amount])
-    list.append([None])
-    list.append([None, None, None, None, None, "ИТОГО ПО КОМПАНИИ", company_amount])
+        list.append([payment["company"], payment["facility"], payment["creator"], payment["amount"], payment["date"],
+                     payment["purpose"], payment["type"], payment["user_name"], payment["comment"]])
+
     wb.active = await excel_column_width(list)
     wb.save(f"{name}.xlsx")
-    return name
 
 
 async def excel_column_width(worksheet):

@@ -21,9 +21,8 @@ async def make_month_calendar(month=None, year=None):
 async def main_keyboard():
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add(KeyboardButton(text="Добавить платёж"))
-    keyboard.add(KeyboardButton(text="Изменить Компании/объекты"))
-    # keyboard.add(KeyboardButton(text="Пользователи"))
     keyboard.add(KeyboardButton(text="Просмотр"))
+    keyboard.add(KeyboardButton(text="⚙️"))
     return keyboard
 
 
@@ -32,59 +31,97 @@ async def payment_company_keyboard(companies):
     for company in companies:
         keyboard.add(InlineKeyboardButton(text=company["name"],
                                           callback_data=f"payment_company_{company['company_id']}"))
-    keyboard.row(InlineKeyboardButton(text="↩️", callback_data="back"),
-                 InlineKeyboardButton(text="🚫", callback_data="cancel"))
+    keyboard.add(InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
     return keyboard
 
 
-async def payment_object_keyboard(objects):
+async def payment_facility_keyboard(facilities):
     keyboard = InlineKeyboardMarkup(resize_keyboard=True)
-    for _object in objects:
-        keyboard.add(InlineKeyboardButton(text=_object["name"], callback_data=f"payment_object_{_object['object_id']}"))
-    keyboard.row(InlineKeyboardButton(text="↩️", callback_data="back"),
-                 InlineKeyboardButton(text="🚫", callback_data="cancel"))
+    for facility in facilities:
+        keyboard.add(InlineKeyboardButton(text=facility["name"],
+                                          callback_data=f"payment_facility_{facility['facility_id']}"))
+    keyboard.row(InlineKeyboardButton(text="↩️",
+                                      callback_data="back"),
+                 InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
     return keyboard
 
 
 async def payment_choice_keyboard():
     keyboard = InlineKeyboardMarkup(resize_keyboard=True)
-    keyboard.add(InlineKeyboardButton(text="Назначение платежа", callback_data="payment_spent_for"))
-    keyboard.add(InlineKeyboardButton(text="Под отчёт", callback_data="payment_user_name"))
-    keyboard.row(InlineKeyboardButton(text="↩️", callback_data="back"),
-                 InlineKeyboardButton(text="🚫", callback_data="cancel"))
+    keyboard.add(InlineKeyboardButton(text="Назначение платежа",
+                                      callback_data="payment_purpose"))
+    keyboard.add(InlineKeyboardButton(text="Под отчёт",
+                                      callback_data="payment_user"))
+    keyboard.row(InlineKeyboardButton(text="↩️",
+                                      callback_data="back"),
+                 InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
     return keyboard
 
 
-async def payment_users_keyboard(users, page):
-    pages = len(users) // 10
-    if len(users) % 10 != 0:
-        pages += 1
+async def payment_purpose_type_keyboard(purpose_types):
     keyboard = InlineKeyboardMarkup(resize_keyboard=True)
-    for i in range(page * 10 - 10, page * 10):
-        if i == len(users):
-            break
-        keyboard.add(InlineKeyboardButton(text=users[i]["name"], callback_data=f"payment_user_name_{users[i]['name']}"))
-    if len(users) > 10:
-        keyboard.row(InlineKeyboardButton(text="◀️",
-                                          callback_data="payment_user_page_back"),
-                     InlineKeyboardButton(text=f"{page} / {pages}",
-                                          callback_data="nothing"),
-                     InlineKeyboardButton(text="▶️",
-                                          callback_data="payment_user_page_forward"))
-    keyboard.row(InlineKeyboardButton(text="↩️", callback_data="back"),
-                 InlineKeyboardButton(text="🚫", callback_data="cancel"))
+    for purpose_type in purpose_types:
+        keyboard.add(InlineKeyboardButton(text=purpose_type["name"],
+                                          callback_data=f"payment_purpose_type_{purpose_type['type_id']}"))
+    keyboard.row(InlineKeyboardButton(text="↩️",
+                                      callback_data="back"),
+                 InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
+    return keyboard
+
+
+async def payment_purpose_keyboard(purposes):
+    keyboard = InlineKeyboardMarkup(resize_keyboard=True)
+    for purpose in purposes:
+        keyboard.add(InlineKeyboardButton(text=purpose["name"],
+                                          callback_data=f"payment_purpose_{purpose['purpose_id']}"))
+    keyboard.row(InlineKeyboardButton(text="↩️",
+                                      callback_data="back"),
+                 InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
+    return keyboard
+
+
+async def payment_users_keyboard(users):
+    keyboard = InlineKeyboardMarkup(resize_keyboard=True)
+    for user in users:
+        keyboard.add(InlineKeyboardButton(text=user["name"],
+                                          callback_data=f"payment_user_{user['user_id']}"))
+    keyboard.row(InlineKeyboardButton(text="↩️",
+                                      callback_data="back"),
+                 InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
     return keyboard
 
 
 async def payment_send_keyboard():
     keyboard = InlineKeyboardMarkup(resize_keyboard=True)
-    keyboard.add(InlineKeyboardButton(text="Отправить без комментария", callback_data="payment_send_without_comment"))
-    keyboard.row(InlineKeyboardButton(text="↩️", callback_data="back"),
-                 InlineKeyboardButton(text="🚫", callback_data="cancel"))
+    keyboard.add(InlineKeyboardButton(text="Отправить без комментария",
+                                      callback_data="payment_send_without_comment"))
+    keyboard.row(InlineKeyboardButton(text="↩️",
+                                      callback_data="back"),
+                 InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
     return keyboard
 
 
-async def change_companies_keyboard(companies):
+async def settings_keyboard():
+    keyboard = InlineKeyboardMarkup(resize_keyboard=True)
+    keyboard.add(InlineKeyboardButton(text="Компании/объекты",
+                                      callback_data="settings_companies"))
+    keyboard.add(InlineKeyboardButton(text="Назначения",
+                                      callback_data="settings_purpose_types"))
+    keyboard.add(InlineKeyboardButton(text="Люди",
+                                      callback_data="settings_users"))
+    keyboard.add(InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
+    return keyboard
+
+
+async def settings_companies_keyboard(companies):
     keyboard = InlineKeyboardMarkup(resize_keyboard=True)
     for company in companies:
         if company["status"]:
@@ -92,80 +129,226 @@ async def change_companies_keyboard(companies):
         else:
             company["status"] = "🔴"
         keyboard.row(InlineKeyboardButton(text=company["name"],
-                                          callback_data=f"company_change_name_{company['company_id']}"),
+                                          callback_data="nothing"),
                      InlineKeyboardButton(text="Объекты",
-                                          callback_data=f"objects_in_company_{company['company_id']}"),
+                                          callback_data=f"settings_facilities_in_company_{company['company_id']}"),
                      InlineKeyboardButton(text=company["status"],
-                                          callback_data=f"company_change_status_{company['company_id']}"),
+                                          callback_data=f"settings_company_change_status_{company['company_id']}"),
                      InlineKeyboardButton(text="🗑️",
-                                          callback_data=f"company_delete_{company['company_id']}"))
-    keyboard.add(InlineKeyboardButton(text="Добавить Компанию", callback_data="company_add"))
-    keyboard.add(InlineKeyboardButton(text="🚫", callback_data="cancel"))
+                                          callback_data=f"settings_company_delete_{company['company_id']}"))
+    keyboard.add(InlineKeyboardButton(text="Добавить Компанию",
+                                      callback_data="settings_company_add"))
+    keyboard.row(InlineKeyboardButton(text="↩️",
+                                      callback_data="back"),
+                 InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
     return keyboard
 
 
-async def change_objects_keyboard(objects):
+async def settings_facilities_keyboard(facilities):
     keyboard = InlineKeyboardMarkup(resize_keyboard=True)
-    for object in objects:
-        if object["status"]:
-            object["status"] = "🟢"
+    for facility in facilities:
+        if facility["status"]:
+            facility["status"] = "🟢"
         else:
-            object["status"] = "🔴"
-        keyboard.row(InlineKeyboardButton(text=object["name"],
-                                          callback_data=f"object_change_name_{object['object_id']}"),
-                     InlineKeyboardButton(text=object["status"],
-                                          callback_data=f"object_change_status_{object['object_id']}"),
+            facility["status"] = "🔴"
+        keyboard.row(InlineKeyboardButton(text=facility["name"],
+                                          callback_data="nothing"),
+                     InlineKeyboardButton(text=facility["status"],
+                                          callback_data=f"settings_facility_change_status_{facility['facility_id']}"),
                      InlineKeyboardButton(text="🗑️",
-                                          callback_data=f"object_delete_{object['object_id']}"))
-    keyboard.add(InlineKeyboardButton(text="Добавить объект", callback_data="object_add"))
-    keyboard.row(InlineKeyboardButton(text="↩️", callback_data="back"),
-                 InlineKeyboardButton(text="🚫", callback_data="cancel"))
+                                          callback_data=f"settings_facility_delete_{facility['facility_id']}"))
+    keyboard.add(InlineKeyboardButton(text="Добавить объект",
+                                      callback_data="settings_facility_add"))
+    keyboard.row(InlineKeyboardButton(text="↩️",
+                                      callback_data="back"),
+                 InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
+    return keyboard
+
+
+async def settings_purpose_types_keyboard(purpose_types):
+    keyboard = InlineKeyboardMarkup(resize_keyboard=True)
+    for purpose_type in purpose_types:
+        if purpose_type["status"]:
+            purpose_type["status"] = "🟢"
+        else:
+            purpose_type["status"] = "🔴"
+        keyboard.row(InlineKeyboardButton(text=purpose_type["name"],
+                                          callback_data="nothing"),
+                     InlineKeyboardButton(text="Назначения",
+                                          callback_data=f"settings_purposes_in_purpose_type_{purpose_type['type_id']}"),
+                     InlineKeyboardButton(text=purpose_type["status"],
+                                          callback_data=f"settings_purpose_type_change_status_{purpose_type['type_id']}"),
+                     InlineKeyboardButton(text="🗑️",
+                                          callback_data=f"settings_purpose_type_delete_{purpose_type['type_id']}"))
+    keyboard.add(InlineKeyboardButton(text="Добавить тип назначения",
+                                      callback_data="settings_purpose_type_add"))
+    keyboard.row(InlineKeyboardButton(text="↩️",
+                                      callback_data="back"),
+                 InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
+    return keyboard
+
+
+async def settings_purposes_keyboard(purposes):
+    keyboard = InlineKeyboardMarkup(resize_keyboard=True)
+    for purpose in purposes:
+        if purpose["status"]:
+            purpose["status"] = "🟢"
+        else:
+            purpose["status"] = "🔴"
+        keyboard.row(InlineKeyboardButton(text=purpose["name"],
+                                          callback_data="nothing"),
+                     InlineKeyboardButton(text=purpose["status"],
+                                          callback_data=f"settings_purpose_change_status_{purpose['purpose_id']}"),
+                     InlineKeyboardButton(text="🗑️",
+                                          callback_data=f"settings_purpose_delete_{purpose['purpose_id']}"))
+    keyboard.add(InlineKeyboardButton(text="Добавить назначение",
+                                      callback_data="settings_purpose_add"))
+    keyboard.row(InlineKeyboardButton(text="↩️",
+                                      callback_data="back"),
+                 InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
+    return keyboard
+
+
+async def settings_users_keyboard(users):
+    keyboard = InlineKeyboardMarkup(resize_keyboard=True)
+    for user in users:
+        if user["status"]:
+            user["status"] = "🟢"
+        else:
+            user["status"] = "🔴"
+        keyboard.row(InlineKeyboardButton(text=user["name"],
+                                          callback_data="nothing"))
+        buttons = [InlineKeyboardButton(text=str(user["balance"]),
+                                        callback_data="nothing"),
+                   InlineKeyboardButton(text="Списать баланс",
+                                        callback_data=f"settings_user_clear_balance_{user['user_id']}")]
+        if user["secret_key"]:
+            buttons.append(InlineKeyboardButton(text="Пароль",
+                                                callback_data=f"settings_user_secret_key_{user['user_id']}"))
+        buttons.append(InlineKeyboardButton(text="🗑️",
+                                            callback_data=f"settings_user_delete_{user['user_id']}"))
+        keyboard.row(*buttons)
+    keyboard.add(InlineKeyboardButton(text="Добавить нового человека",
+                                      callback_data="settings_user_add"))
+    keyboard.row(InlineKeyboardButton(text="↩️",
+                                      callback_data="back"),
+                 InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
     return keyboard
 
 
 async def view_keyboard():
     keyboard = InlineKeyboardMarkup(resize_keyboard=True)
-    keyboard.add(InlineKeyboardButton(text="Общий отчёт", callback_data="view_all"))
-    keyboard.add(InlineKeyboardButton(text="Выбрать Компанию", callback_data="view_companies"))
-    keyboard.add(InlineKeyboardButton(text="Выбрать человека", callback_data="view_users"))
-    keyboard.add(InlineKeyboardButton(text="🚫", callback_data="cancel"))
+    keyboard.add(InlineKeyboardButton(text="Свод - все пункты",
+                                      callback_data="view_all"))
+    keyboard.add(InlineKeyboardButton(text="Отчёт по компании",
+                                      callback_data="view_company"))
+    keyboard.add(InlineKeyboardButton(text="Отчёт по объекту",
+                                      callback_data="view_facility"))
+    keyboard.add(InlineKeyboardButton(text="Отчёт по типу назначения",
+                                      callback_data="view_purpose_type"))
+    keyboard.add(InlineKeyboardButton(text="Отчёт по назначению",
+                                      callback_data="view_purpose"))
+    keyboard.add(InlineKeyboardButton(text="Отчёт по подотчётному",
+                                      callback_data="view_user"))
+    keyboard.add(InlineKeyboardButton(text="Отчёт по автору",
+                                      callback_data="view_creator"))
+    keyboard.add(InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
     return keyboard
 
 
-async def view_companies_keyboard(companies):
+async def view_company_keyboard(companies):
     keyboard = InlineKeyboardMarkup(resize_keyboard=True)
     for company in companies:
-        keyboard.row(InlineKeyboardButton(text=company["name"], callback_data=f"view_company_{company['company_id']}"),
-                     InlineKeyboardButton(text="Объекты", callback_data=f"view_objects_{company['company_id']}"))
-    keyboard.row(InlineKeyboardButton(text="↩️", callback_data="back"),
-                 InlineKeyboardButton(text="🚫", callback_data="cancel"))
+        keyboard.add(InlineKeyboardButton(text=company["name"],
+                                          callback_data=f"view_company_{company['company_id']}"))
+    keyboard.row(InlineKeyboardButton(text="↩️",
+                                      callback_data="back"),
+                 InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
     return keyboard
 
 
-async def view_objects_keyboard(objects):
+async def view_facility_keyboard(facilities):
     keyboard = InlineKeyboardMarkup(resize_keyboard=True)
-    for object in objects:
-        keyboard.add(InlineKeyboardButton(text=object["name"], callback_data=f"view_object_{object['object_id']}"))
-    keyboard.row(InlineKeyboardButton(text="↩️", callback_data="back"),
-                 InlineKeyboardButton(text="🚫", callback_data="cancel"))
+    for facility in facilities:
+        keyboard.add(InlineKeyboardButton(text=facility["name"],
+                                          callback_data=f"view_facility_{facility['facility_id']}"))
+    keyboard.row(InlineKeyboardButton(text="↩️",
+                                      callback_data="back"),
+                 InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
     return keyboard
 
 
-async def payment_date_keyboard(month=None, year=None):
+async def view_purpose_type_keyboard(purpose_types):
+    keyboard = InlineKeyboardMarkup(resize_keyboard=True)
+    for purpose_type in purpose_types:
+        keyboard.add(InlineKeyboardButton(text=purpose_type["name"],
+                                          callback_data=f"view_purpose_type_{purpose_type['type_id']}"))
+    keyboard.row(InlineKeyboardButton(text="↩️",
+                                      callback_data="back"),
+                 InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
+    return keyboard
+
+
+async def view_purpose_keyboard(purposes):
+    keyboard = InlineKeyboardMarkup(resize_keyboard=True)
+    for purpose in purposes:
+        keyboard.add(InlineKeyboardButton(text=purpose["name"],
+                                          callback_data=f"view_purpose_{purpose['purpose_id']}"))
+    keyboard.row(InlineKeyboardButton(text="↩️",
+                                      callback_data="back"),
+                 InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
+    return keyboard
+
+
+async def view_user_keyboard(users):
+    keyboard = InlineKeyboardMarkup(resize_keyboard=True)
+    for user in users:
+        keyboard.add(InlineKeyboardButton(text=user["name"],
+                                          callback_data=f"view_user_{user['user_id']}"))
+    keyboard.row(InlineKeyboardButton(text="↩️",
+                                      callback_data="back"),
+                 InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
+    return keyboard
+
+
+async def view_creator_keyboard(users):
+    keyboard = InlineKeyboardMarkup(resize_keyboard=True)
+    for user in users:
+        keyboard.add(InlineKeyboardButton(text=user["name"],
+                                          callback_data=f"view_creator_{user['tg_id']}"))
+    keyboard.row(InlineKeyboardButton(text="↩️",
+                                      callback_data="back"),
+                 InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
+    return keyboard
+
+
+async def calendar_keyboard(month=None, year=None):
     calendar, month, year, today = await make_month_calendar(month, year)
     keyboard = InlineKeyboardMarkup()
     keyboard.row(InlineKeyboardButton(text="◀️",
-                                      callback_data=f"payment_year_back_{month}_{year}"),
+                                      callback_data=f"calendar_year_back_{month}_{year}"),
                  InlineKeyboardButton(text=year,
                                       callback_data="nothing"),
                  InlineKeyboardButton(text="▶️",
-                                      callback_data=f"payment_year_forward_{month}_{year}"))
+                                      callback_data=f"calendar_year_forward_{month}_{year}"))
     keyboard.row(InlineKeyboardButton(text="◀️",
-                                      callback_data=f"payment_month_back_{month}_{year}"),
+                                      callback_data=f"calendar_month_back_{month}_{year}"),
                  InlineKeyboardButton(text=month_names[month],
                                       callback_data="nothing"),
                  InlineKeyboardButton(text="▶️",
-                                      callback_data=f"payment_month_forward_{month}_{year}"))
+                                      callback_data=f"calendar_month_forward_{month}_{year}"))
     for week in calendar:
         button_list = []
         for day in week:
@@ -174,55 +357,45 @@ async def payment_date_keyboard(month=None, year=None):
                                                         callback_data=f"nothing"))
             elif day == today:
                 button_list.append(InlineKeyboardButton(text=f"🟢{day.day}",
-                                                        callback_data=f"payment_date_{day}"))
+                                                        callback_data=f"date_{day}"))
             else:
                 button_list.append(InlineKeyboardButton(text=str(day.day),
-                                                        callback_data=f"payment_date_{day}"))
+                                                        callback_data=f"date_{day}"))
         keyboard.row(*button_list)
-    keyboard.row(InlineKeyboardButton(text="↩️", callback_data="back"),
-                 InlineKeyboardButton(text="🚫", callback_data="cancel"))
-    return keyboard
-
-
-async def purpose_type_keyboard(purpose_types):
-    keyboard = InlineKeyboardMarkup(resize_keyboard=True)
-    for purpose_type in purpose_types:
-        keyboard.add(InlineKeyboardButton(text=purpose_type["type"], callback_data=f"payment_purpose_type_{purpose_type['type']}"))
-    keyboard.row(InlineKeyboardButton(text="↩️", callback_data="back"),
-                 InlineKeyboardButton(text="🚫", callback_data="cancel"))
-    return keyboard
-
-
-async def purpose_keyboard(purposes):
-    keyboard = InlineKeyboardMarkup(resize_keyboard=True)
-    for purpose in purposes:
-        keyboard.add(InlineKeyboardButton(text=purpose["name"], callback_data=f"payment_purpose_{purpose['id']}"))
-    keyboard.row(InlineKeyboardButton(text="↩️", callback_data="back"),
-                 InlineKeyboardButton(text="🚫", callback_data="cancel"))
+    keyboard.row(InlineKeyboardButton(text="↩️",
+                                      callback_data="back"),
+                 InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
     return keyboard
 
 
 async def yes_no_keyboard():
     keyboard = InlineKeyboardMarkup(resize_keyboard=True)
-    keyboard.add(InlineKeyboardButton(text="Да", callback_data="yes"))
-    keyboard.add(InlineKeyboardButton(text="Нет", callback_data="back"))
+    keyboard.add(InlineKeyboardButton(text="Да",
+                                      callback_data="yes"))
+    keyboard.add(InlineKeyboardButton(text="Нет",
+                                      callback_data="back"))
     return keyboard
 
 
 async def back_cancel_keyboard():
     keyboard = InlineKeyboardMarkup()
-    keyboard.row(InlineKeyboardButton(text="↩️", callback_data="back"),
-                 InlineKeyboardButton(text="🚫", callback_data="cancel"))
+    keyboard.row(InlineKeyboardButton(text="↩️",
+                                      callback_data="back"),
+                 InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
     return keyboard
 
 
 async def back_keyboard():
     keyboard = InlineKeyboardMarkup()
-    keyboard.add(InlineKeyboardButton(text="↩️", callback_data="back"))
+    keyboard.add(InlineKeyboardButton(text="↩️",
+                                      callback_data="back"))
     return keyboard
 
 
 async def cancel_keyboard():
     keyboard = InlineKeyboardMarkup()
-    keyboard.row(InlineKeyboardButton(text="🚫", callback_data="cancel"))
+    keyboard.row(InlineKeyboardButton(text="🚫",
+                                      callback_data="cancel"))
     return keyboard
