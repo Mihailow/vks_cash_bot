@@ -7,11 +7,8 @@ from aiogram.types import BotCommand, BotCommandScopeDefault
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-telegram_token = "6353026522:AAH6nwB6AgNQKQaUwT9PFvfI-8vA7NuYwlY"
+telegram_token = ""
 is_testing = True
-
-# telegram_token = "6884398594:AAHrVPqEFwX7aTtkEuZolDi5W-c-bHZN0Hk"
-# is_testing = False
 
 DB_HOST = "localhost"
 DB_NAME = "vks_main"
